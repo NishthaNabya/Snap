@@ -56,9 +56,18 @@ When you initialize Snap in a repository, it drops a small script into your nati
 
 I wrote this in pure Go with zero CGO dependencies (so it cross-compiles everywhere). The backing store does zero-cost deduplication, meaning if your database didn't actually change between commits, snap doesn't duplicate the storage. It also stream everything through a tiny 32KB buffer, so it uses practically zero RAM even if you are tracking massive gigabyte-level databases.
 
-### Driver Status & Roadmap
-- **Dotenv**: Fully supported.
-- **SQLite**: Supported via a file-copy mechanism. This is perfectly safe for local dev environments where only one agent/developer is writing to the DB at a time. *Roadmap: We plan to integrate the native Go SQLite Backup API (`zombiezen.com/go/sqlite`) for consistent hot-backups on concurrent databases.*
+## What it actually works with (The Honest Truth)
+
+Right now, Snap is built specifically for **local development environments**. We built it to make our own lives easier when working with AI coding agents, so we prioritized the tools we actually use on our laptops:
+
+* **.env files**: Fully supported. We capture them perfectly.
+* **SQLite databases**: Fully supported for local dev. Right now we use a blazing-fast file-copy mechanism under the hood. It takes a perfect snapshot of your `.sqlite` or `.db` file in milliseconds and streams it to the storage engine. (Just don't try to use it on a live production SQLite database that is taking 5,000 requests a second, it's not meant for that!).
+
+**What it DOES NOT support (yet):**
+* PostgreSQL, MySQL, Redis, or Mongo.
+* Cloud-hosted databases. We physically cannot rewind your AWS RDS instance (and you probably wouldn't want us to!). 
+
+Snap is purely for keeping your *local* environment perfectly synced with your *local* Git repository while you hack away or let an AI agent generate code. Building native driver hooks for local Docker Postgres/Redis instances is definitely on the roadmap!
 
 ## Installation
 
