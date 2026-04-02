@@ -133,7 +133,11 @@ func (o *Orchestrator) Save(ctx context.Context, force bool) error {
 
 		rc, meta, err := rd.Driver.Capture(ctx, rd.Source)
 		if err != nil {
-			saveErrors = append(saveErrors, fmt.Sprintf("%s: %v", rd.Source, err))
+			if isNotFound(err) {
+				fmt.Fprintf(os.Stderr, "snap: warning: skipping %s (file not found)\n", rd.Source)
+			} else {
+				saveErrors = append(saveErrors, fmt.Sprintf("%s: %v", rd.Source, err))
+			}
 			continue // Prevent one missing file from aborting the whole save
 		}
 
@@ -188,7 +192,7 @@ func (o *Orchestrator) Restore(ctx context.Context, gitHash string) error {
 	// Step 2: Load manifest.
 	mf, err := o.manifMgr.Load(gitHash)
 	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
+		if isNotFound(err) {
 			fmt.Fprintf(os.Stderr, "snap: warning: no snapshot for commit %s\n", gitHash[:12])
 			return nil
 		}
@@ -331,4 +335,14 @@ func (o *Orchestrator) VerifyAll(ctx context.Context, gitHash string) error {
 		return fmt.Errorf("snap: integrity check failed")
 	}
 	return nil
+}
+
+// isNotFound robustly checks if an error is a cross-platform "file not found" error,
+// gracefully handling Go 1.13+ error wrapping and Windows syscall disparities.
+func isNotFound(err error) bool {
+	if errors.Is(err, os.ErrNotExist) {
+		return true
+	}
+	s := err.Error()
+	return strings.Contains(s, "no such file or directory") || strings.Contains(s, "The system cannot find the file specified")
 }
