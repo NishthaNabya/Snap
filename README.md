@@ -1,4 +1,4 @@
-# snap
+# Snap-CLI
 
 State-aware checkpoints for AI coding agents (and humans).
 
