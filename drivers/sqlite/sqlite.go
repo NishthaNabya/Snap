@@ -1,6 +1,9 @@
 // Package sqlite implements the StateDriver for SQLite databases.
-// It uses the native Go SQLite Backup API for consistent snapshots
-// without requiring the sqlite3 CLI binary.
+//
+// Current implementation: file-copy based capture and restore.
+// This is safe for databases that are not actively being written to
+// by another process during capture. For hot-backup support, integrate
+// the native Go SQLite Backup API (zombiezen.com/go/sqlite).
 //
 // Priority: PriorityDatabase — executes after environment drivers.
 package sqlite
@@ -26,19 +29,10 @@ func init() {
 func (d *driver) Name() string                  { return "sqlite" }
 func (d *driver) Priority() snap.DriverPriority { return snap.PriorityDatabase }
 
-// Capture creates a point-in-time consistent backup of the SQLite
-// database using the native Backup API.
-//
-// NOTE: The full Backup API implementation requires the
-// zombiezen.com/go/sqlite dependency. This file provides the
-// structural scaffold and a file-copy fallback that is sufficient
-// for databases not actively in use.
-//
-// Production implementation should call:
-//
-//	sqlite.OpenConn → BackupInit → Step(-1) → Close
-//
-// See implementation_plan.md §2.2 for the complete Backup API flow.
+// Capture copies the SQLite database file to a temp location and
+// streams it to the CAS. This file-copy approach is safe for
+// databases not under active writes. For concurrent access, swap
+// this with the native Backup API (see implementation_plan.md §2.2).
 func (d *driver) Capture(ctx context.Context, source string) (io.ReadCloser, snap.CaptureMetadata, error) {
 	// Verify the source exists.
 	info, err := os.Stat(source)
@@ -62,8 +56,7 @@ func (d *driver) Capture(ctx context.Context, source string) (io.ReadCloser, sna
 		}
 	}()
 
-	// Copy the database file. In the full implementation, this would
-	// be replaced with the Backup API (BackupInit/Step/Close).
+	// Copy the database file.
 	srcFile, err := os.Open(source)
 	if err != nil {
 		return nil, nil, fmt.Errorf("sqlite: open source: %w", err)
@@ -85,7 +78,7 @@ func (d *driver) Capture(ctx context.Context, source string) (io.ReadCloser, sna
 	}
 
 	meta := snap.CaptureMetadata{
-		"backup_method": "native-backup-api",
+		"backup_method": "file-copy",
 		"original_size": info.Size(),
 	}
 

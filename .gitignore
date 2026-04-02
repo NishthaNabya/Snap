@@ -1,7 +1,6 @@
-# Build outputs
-snap
-snap_bin
-bin/
+# Build outputs (binary files only, not source directories)
+/snap_bin
+/bin/
 *.exe
 
 # Test repositories
