@@ -1,0 +1,11 @@
+# Build outputs
+snap
+snap_bin
+bin/
+*.exe
+
+# Test repositories
+test-repo/
+
+# Design documents (kept for personal reference)
+implementation_plan.md
