@@ -67,17 +67,22 @@ Because of this, you should NOT use Snap to track source code (`.ts`, `.py`, `.g
 
 **What it DOES NOT support (yet):**
 * PostgreSQL, MySQL, Redis, or Mongo.
-* Cloud-hosted databases. Snap physically cannot rewind your AWS RDS instance (and you probably wouldn't want it to!). 
+* Cloud-hosted databases. Snap physically cannot rewind your AWS RDS instance (and you probably wouldn't want it to!).
+* `node_modules` or large dependency folders. Don't do this! Just commit your `package-lock.json` and run `npm install` after checkout instead.
 
 Snap is purely for keeping your *local* environment perfectly synced with your *local* Git repository while you hack away or let an AI agent generate code. Building native driver hooks for local Docker Postgres/Redis instances is definitely on the roadmap!
 
 ## Installation
 
-You just need Go installed on your machine. Run:
+You need Go installed on your machine. Then run:
 
 ```bash
-go install github.com/NishthaNabya/Snap-CLI/cmd/snap@latest
+go install github.com/NishthaNabya/Snap-CLI/cmd/snap@v0.1.0
 ```
+
+This will install a binary called `snap` on your system. You will always type `snap` in the terminal, not `Snap-CLI`.
+
+Works on **Mac, Linux, and Windows**.
 
 ## Quick start
 
@@ -87,8 +92,33 @@ Go to any existing git repository and run:
 snap init
 ```
 
-This creates a `.snap/config.json` file. Edit it to tell Snap what files to track. For example, if you want local environments and a sqlite database tracked:
+This creates a `.snap/` directory and installs Git hooks. Now open `.snap/config.json` and tell Snap what to track.
 
+**If you only want to track your `.env` file:**
+```json
+{
+  "entries": [
+    {
+      "driver": "dotenv",
+      "source": ".env"
+    }
+  ]
+}
+```
+
+**If you only want to track a SQLite database:**
+```json
+{
+  "entries": [
+    {
+      "driver": "sqlite",
+      "source": "database.sqlite"
+    }
+  ]
+}
+```
+
+**If you want both tracked at the same time:**
 ```json
 {
   "entries": [
@@ -105,29 +135,93 @@ This creates a `.snap/config.json` file. Edit it to tell Snap what files to trac
 ```
 
 > [!WARNING]
-> **CRITICAL SECURITY NOTE:** Because Snap stores copies of your `.env` files and databases locally, you **MUST** add the storage directories to your `.gitignore` file. If you don't, you will accidentally push your secret API keys to GitHub!
+> **CRITICAL SECURITY NOTE:** Snap stores copies of your `.env` files and databases locally inside `.snap/objects/`. You **MUST** add the storage directories to your `.gitignore` file. If you don't, you will accidentally push your secret API keys to GitHub!
 >
 > Add this to your `.gitignore`:
 > ```text
 > .snap/objects/
-> .snap/ledgers/
+> .snap/manifests/
+> .snap/tmp/
 > .snap/snap.lock
 > ```
-> *(Note: It is perfectly safe to commit `.snap/config.json` so your team shares the same config!)*
+> *(It is perfectly safe to commit `.snap/config.json` so your team shares the same tracking config!)*
 
-That's literally it. You don't need to learn any new CLI commands. Just use Git like you always do.
+## How to actually use it
+
+After setup, you don't type any special Snap commands. You just use Git like you always do. Snap runs silently in the background.
+
+**Step 1: Make changes and commit normally.**
+```bash
+# Create or edit your .env file (use your editor, or the terminal)
+echo "SECRET=hello123" > .env
+
+git add .
+git commit -m "my changes"
+```
+When you commit, Snap's `post-commit` hook fires automatically and quietly backs up your `.env` (and/or database) in the background.
+
+**Step 2: Make more changes and commit again.**
+```bash
+echo "SECRET=changed456" > .env
+git commit -am "updated secret"
+```
+Snap silently takes another snapshot tied to this new commit.
+
+**Step 3: When you want to revert, use `git checkout`.**
+
+This is the key part. To go back in time, you run a standard Git checkout command:
 
 ```bash
-# Make a change to your env
-echo "SECRET=123" > .env
-git add .env
-git commit -m "added a secret"
-# (Snap quietly backed up your .env in the background)
-
-# Change it again
-echo "SECRET=456" > .env
-git commit -am "changed the secret"
-
-# Watch Snap automatically revert your .env file on disk!
+# Go back exactly 1 commit
 git checkout HEAD~1
+
+# Or go back 3 commits
+git checkout HEAD~3
+
+# Or jump to a specific commit hash
+git checkout abc1234
 ```
+
+When you do this, Git reverts your code, and Snap automatically reverts your `.env` file and database to match.
+
+**To go back to where you were:**
+```bash
+git checkout main
+```
+
+## Troubleshooting
+
+**"snap: no snapshot for ... (this is normal for commits made before snap init)"**
+
+This is not an error! It just means the commit you checked out was made *before* you installed Snap. Snap can only restore state for commits that happened *after* you ran `snap init`.
+
+**"snap: warning: skipping .env (file not found)"**
+
+This means you configured `.env` in your `.snap/config.json`, but you haven't actually created a `.env` file in your project yet. Snap will silently skip it and continue. Once you create the file and commit, Snap will start tracking it automatically.
+
+**"nothing to commit, working tree clean" (and Snap didn't save anything)**
+
+Snap's hooks only fire when Git actually creates a commit. If Git says there is nothing to commit, Snap never runs. Make sure you have actual changes staged before committing.
+
+**Installed Snap but gets an old version**
+
+The Go module proxy sometimes caches old code. To force the latest version, run:
+```bash
+go install github.com/NishthaNabya/Snap-CLI/cmd/snap@v0.1.0
+```
+If you had a previous version, you might need to clear the cache first:
+```bash
+go clean -cache
+go install github.com/NishthaNabya/Snap-CLI/cmd/snap@v0.1.0
+```
+
+## Contributing to Snap
+
+If you're a fellow developer looking to contribute to Snap, here are some of the biggest features currently on the roadmap that I would love your help with!
+
+* **Generic File Driver:** A driver to snap completely arbitrary single files (like a massive `dataset.csv` or `config.xml`) that shouldn't be in Git.
+* **Native SQLite Backup API:** Right now, the SQLite driver uses a file-copy mechanism. This is perfectly safe for local dev, but for concurrent access, swapping this to the native Go SQLite Backup API (`zombiezen.com/go/sqlite`) would make it bulletproof.
+* **Docker / Cloud DB Hooks:** Building drivers capable of sending snapshot commands to a local PostGres Docker container or a local Redis instance before committing.
+* **Encryption at Rest:** Adding AES encryption to the `.snap/objects` blobs if you want to store your local secrets more securely!
+
+If you have any other cool ideas, feel free to fork the repo and open a new Pull Request!
