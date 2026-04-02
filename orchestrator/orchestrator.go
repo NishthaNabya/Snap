@@ -6,6 +6,7 @@ package orchestrator
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -187,7 +188,7 @@ func (o *Orchestrator) Restore(ctx context.Context, gitHash string) error {
 	// Step 2: Load manifest.
 	mf, err := o.manifMgr.Load(gitHash)
 	if err != nil {
-		if os.IsNotExist(err) {
+		if errors.Is(err, os.ErrNotExist) {
 			fmt.Fprintf(os.Stderr, "snap: warning: no snapshot for commit %s\n", gitHash[:12])
 			return nil
 		}
