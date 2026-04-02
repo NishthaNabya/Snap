@@ -15,13 +15,13 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/NishthaNabya/snap/hooks"
-	"github.com/NishthaNabya/snap/orchestrator"
-	"github.com/NishthaNabya/snap/snap"
+	"github.com/NishthaNabya/Snap-CLI/hooks"
+	"github.com/NishthaNabya/Snap-CLI/orchestrator"
+	"github.com/NishthaNabya/Snap-CLI/snap"
 
 	// Register drivers via init().
-	_ "github.com/NishthaNabya/snap/drivers/dotenv"
-	_ "github.com/NishthaNabya/snap/drivers/sqlite"
+	_ "github.com/NishthaNabya/Snap-CLI/drivers/dotenv"
+	_ "github.com/NishthaNabya/Snap-CLI/drivers/sqlite"
 )
 
 func main() {

@@ -13,10 +13,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/NishthaNabya/snap/cas"
-	"github.com/NishthaNabya/snap/lock"
-	"github.com/NishthaNabya/snap/manifest"
-	"github.com/NishthaNabya/snap/snap"
+	"github.com/NishthaNabya/Snap-CLI/cas"
+	"github.com/NishthaNabya/Snap-CLI/lock"
+	"github.com/NishthaNabya/Snap-CLI/manifest"
+	"github.com/NishthaNabya/Snap-CLI/snap"
 )
 
 const (

@@ -17,7 +17,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/NishthaNabya/snap/snap"
+	"github.com/NishthaNabya/Snap-CLI/snap"
 )
 
 type driver struct{}

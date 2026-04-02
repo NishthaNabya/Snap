@@ -74,7 +74,7 @@ Snap is purely for keeping your *local* environment perfectly synced with your *
 You just need Go installed on your machine. Run:
 
 ```bash
-go install github.com/NishthaNabya/snap/cmd/snap@latest
+go install github.com/NishthaNabya/Snap-CLI/cmd/snap@latest
 ```
 
 ## Quick start
