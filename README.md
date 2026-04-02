@@ -12,11 +12,53 @@ Snap fixes this. It quietly hooks into Git so that whenever you change branches 
 
 The philosophy is simple: the Git commit hash should be the single source of truth for your entire system.
 
+### Visual Architecture
+
+```mermaid
+graph TD
+    subgraph "User Space"
+        CLI["CLI Entrypoint (snap save / restore)"]
+        GIT["Git Hooks (post-commit, checkout)"]
+    end
+
+    subgraph "Core Engine"
+        ORCH["Orchestrator"]
+        REG["Driver Registry"]
+        MAN["Manifest Manager"]
+    end
+
+    subgraph "Storage Layer"
+        CAS["CAS Object Store"]
+        LEDGER["State Ledger (manifests)"]
+        STAGING["Staging Area (tmp)"]
+    end
+
+    subgraph "State Drivers"
+        SQLITE["SQLite Driver"]
+        ENV["Dotenv Driver"]
+    end
+
+    CLI --> ORCH
+    GIT --> ORCH
+    ORCH --> REG
+    ORCH --> MAN
+    REG --> SQLITE
+    REG --> ENV
+    SQLITE --> STAGING
+    ENV --> STAGING
+    STAGING --> CAS
+    MAN --> LEDGER
+```
+
 When you initialize Snap in a repository, it drops a small script into your native Git hooks:
 - When you run `git commit`, Snap quietly streams your state (like a local SQLite DB or an env file) into a hidden content-addressable store (`.snap/objects`).
 - When you run `git checkout`, Snap grabs the data associated with that checkout and puts it right back where it belongs.
 
 I wrote this in pure Go with zero CGO dependencies (so it cross-compiles everywhere). The backing store does zero-cost deduplication, meaning if your database didn't actually change between commits, snap doesn't duplicate the storage. It also stream everything through a tiny 32KB buffer, so it uses practically zero RAM even if you are tracking massive gigabyte-level databases.
+
+### Driver Status & Roadmap
+- **Dotenv**: Fully supported.
+- **SQLite**: Supported via a file-copy mechanism. This is perfectly safe for local dev environments where only one agent/developer is writing to the DB at a time. *Roadmap: We plan to integrate the native Go SQLite Backup API (`zombiezen.com/go/sqlite`) for consistent hot-backups on concurrent databases.*
 
 ## Installation
 
