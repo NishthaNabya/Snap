@@ -4,7 +4,7 @@ State-aware checkpoints for AI coding agents (and humans).
 
 Ever used an AI coding agent, let it run for a while, realized it messed up, and ran `git checkout HEAD~5` to revert the code? If you have, you probably noticed that while your code reverted, your database and your `.env` file didn't. 
 
-Now your code expects one thing, but your database is in the future. We call this "Agentic Drift", and it's super annoying to debug. 
+Now your code expects one thing, but your database is in the future. This is called Agentic Drift, and it's super annoying to debug. 
 
 Snap fixes this. It quietly hooks into Git so that whenever you change branches or checkout an old commit, it automatically restores your local databases and config files to match exactly how they were at that specific commit.
 
@@ -16,7 +16,7 @@ When you initialize Snap in a repository, it drops a small script into your nati
 - When you run `git commit`, Snap quietly streams your state (like a local SQLite DB or an env file) into a hidden content-addressable store (`.snap/objects`).
 - When you run `git checkout`, Snap grabs the data associated with that checkout and puts it right back where it belongs.
 
-We wrote this in pure Go with zero CGO dependencies (so it cross-compiles everywhere). The backing store does zero-cost deduplication, meaning if your database didn't actually change between commits, we don't duplicate the storage. We also stream everything through a tiny 32KB buffer, so it uses practically zero RAM even if you are tracking massive gigabyte-level databases.
+I wrote this in pure Go with zero CGO dependencies (so it cross-compiles everywhere). The backing store does zero-cost deduplication, meaning if your database didn't actually change between commits, snap doesn't duplicate the storage. It also stream everything through a tiny 32KB buffer, so it uses practically zero RAM even if you are tracking massive gigabyte-level databases.
 
 ## Installation
 
